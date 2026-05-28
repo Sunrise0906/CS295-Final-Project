@@ -63,6 +63,7 @@ class CBS:
         node_limit: Optional[int] = None,
         track_history: bool = False,
         init_constraints: Optional[list] = None,
+        bypass: bool = False,
     ):
         self.instance = instance
         self.grid = instance.grid
@@ -75,6 +76,10 @@ class CBS:
         # Extra constraints to seed the root with (used for subtree rollouts
         # that estimate "how hard is it to finish from here").
         self.init_constraints = list(init_constraints) if init_constraints else []
+        # If True, before branching on a conflict try to replace one agent's
+        # path with a same-cost path that avoids the conflicting move (ICBS
+        # Bypass). If found, update the node in-place instead of branching.
+        self.bypass = bypass
 
         # Static low-level heuristics: backward BFS distance-to-goal per agent.
         self.heuristics = [backward_bfs(self.grid, a.goal) for a in instance.agents]
@@ -176,6 +181,17 @@ class CBS:
             chosen_feat = getattr(self.selector, "chosen_feature", None) \
                 if self.track_history else None
 
+            # Bypass: try to replace one agent's path with a same-cost path
+            # that avoids the conflicting move. If found, update the node in
+            # place (no branching), push back, continue.
+            if self.bypass and self._try_bypass(node, conflict):
+                # Recompute conflicts and re-push (cost unchanged, so f-value
+                # unchanged; ranks identically in the open list).
+                counter += 1
+                heapq.heappush(
+                    open_list, (node.cost, len(node.conflicts), counter, node))
+                continue
+
             for constraint in conflict.constraints():
                 child = self._branch(node, constraint, chosen_feat)
                 if child is None:
@@ -187,6 +203,35 @@ class CBS:
                 self.generated += 1
 
         return self._fail("infeasible")
+
+    def _try_bypass(self, node: CBSNode, conflict) -> bool:
+        """Attempt an ICBS-style bypass: replace one of the two agents' paths
+        with a same-cost path that avoids the conflicting move. If successful,
+        ``node.paths`` and ``node.conflicts`` are updated in place and we
+        return True; otherwise False."""
+        from .core import path_cost, sum_of_costs
+        # The two child constraints already isolate the conflicting move.
+        for con in conflict.constraints():
+            agent = con.agent
+            old_cost = path_cost(node.paths[agent])
+            new_path = self.plan_agent(agent, node.constraints + [con])
+            if new_path is None:
+                continue
+            if path_cost(new_path) > old_cost:
+                continue
+            # Same-cost alternative exists. Replace the path in place.
+            new_paths = list(node.paths)
+            new_paths[agent] = new_path
+            new_conflicts = find_all_conflicts(new_paths)
+            # Only accept the bypass if it reduces the number of conflicts (the
+            # standard ICBS criterion). Otherwise it is no progress.
+            if len(new_conflicts) < len(node.conflicts):
+                node.paths = new_paths
+                node.conflicts = new_conflicts
+                node.cost = sum_of_costs(new_paths)
+                node.classified = False
+                return True
+        return False
 
     def _branch(self, node: CBSNode, constraint: Constraint,
                 chosen_feat=None) -> Optional[CBSNode]:

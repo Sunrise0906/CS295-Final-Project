@@ -1,9 +1,19 @@
 # Follow-up experiments
 
 Additional experiments run after the report was submitted, exploring whether
-the linear ranker can be pushed further. The honest finding is that the linear
-model is at the achievable ceiling in this setup; the bottleneck is the
-oracle's training signal, not the model architecture.
+the linear ranker can be pushed further.
+
+**Headline: no avenue we explored robustly beats the report's linear ranker.**
+Each direction either underperforms (more model capacity, GNN, ensembles,
+extended features) or improves only marginally and inconsistently (cleaner-
+label oracles). In particular, ICBS-style Bypass --- which looked like a
+20-25% win on the standard ratio-of-means table --- shows no robust gain when
+analyzed by per-instance medians/geomeans (the methodology our own report
+insists on). It is a textbook outlier-of-means artifact: Bypass produces a few
+very large savings on a small number of hard instances while marginally hurting
+on the typical instance, so mean-of-means looks like a win and the per-instance
+distribution does not. Bypass is left in the code (`CBS(..., bypass=True)`) for
+reproducibility but is not recommended as an unconditional improvement.
 
 ## Variants tried
 
@@ -60,8 +70,44 @@ Each of these would require more time than was available:
   CBSH-style admissible high-level heuristics, disjoint splitting. These are
   orthogonal to learning and would reliably reduce expansions.
 
+## Bypass: a textbook outlier-of-means cautionary tale
+
+ICBS-style Bypass adds a step before every CBS branching: try to replace one of
+the two agents' paths with a same-cost alternative that resolves the
+conflicting move and reduces the total conflict count. If successful, the
+solver updates the node in place rather than branching. Enabled with
+`CBS(..., bypass=True)`; preserves optimality (verified: solution costs are
+identical with and without Bypass on every solved seed).
+
+A first comparison using mean-over-instances expansions looked like a strong
+improvement (e.g. density 0.1 / 12 agents: linear 154 -> linear+bp 121, a 21%
+mean reduction). However the per-instance analysis our own report insists on
+tells a different story:
+
+| config (density, agents) | linear gm | linear+bp gm | linear+bp win-rate |
+|--------------------------|----------:|-------------:|-------------------:|
+| 0.1, 12                  | 0.77      | 0.84         | 46%                |
+| 0.1, 14                  | 0.68      | 0.70         | 62%                |
+| 0.2, 10                  | 0.64      | 0.62         | 65%                |
+| 0.2, 12                  | 0.48      | 0.52         | 65%                |
+| 0.2, 14                  | 0.65      | 0.66         | 65%                |
+
+Per-instance geometric-mean ratios show no robust improvement; in most hard
+configs Bypass slightly increases the typical expansion ratio while saving a
+lot on a small number of hard outliers, which is exactly what inflates the
+mean. Runtime is also generally slightly worse with Bypass (the extra replans
+have a cost). This reproduces the methodological lesson in the report: ratio
+of means can fabricate apparent wins, per-instance medians and win-rates are
+needed.
+
+The Bypass code is left in `mapf/cbs.py` for reproducibility but is not
+recommended as an unconditional improvement in this setup. Per-instance
+statistics are in `results/optimal_bypass.csv` (produced by
+`scripts/sweep_bypass.py`, analyzed by `scripts/analyze_bypass.py`).
+
 ## Files added/changed in this round
 
+- `mapf/cbs.py` --- adds `bypass=True` option to CBS; implements `_try_bypass`.
 - `mapf/strategies/features.py` --- adds `extract_node_features_ext` and the
   9 extended features (MDD overlap, conflict-graph degree, path overlap, ...).
 - `mapf/strategies/gnn.py` --- new: graph-attention conflict GNN +
@@ -75,3 +121,5 @@ Each of these would require more time than was available:
   optional GNN data output.
 - `scripts/train_gnn.py`, `scripts/eval_gnn.py` --- GNN training and eval.
 - `scripts/derive_v1_from_ext.py` --- slices v1 columns out of ext-feature data.
+- `scripts/sweep_bypass.py`, `scripts/analyze_bypass.py` --- Bypass sweep and
+  analysis.

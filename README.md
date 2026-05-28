@@ -31,9 +31,17 @@ the experiments reported in `overleaf/main.tex`.
 
 Follow-up experiments (extended features, GNN over the conflict graph,
 ensembles, hybrid selectors, cleaner-label data, policy-iteration oracle) are
-documented in [experiments_notes.md](experiments_notes.md). The summary: the
-linear ranker is at the achievable ceiling in this setup; more capacity hurts
-and the bottleneck is oracle-label noise rather than the model.
+documented in [experiments_notes.md](experiments_notes.md). The linear ranker
+is at the achievable ceiling for the imitation-learning route in this setup;
+more model capacity hurts because the bottleneck is oracle-label noise.
+
+We also implemented ICBS-style Bypass and enabled it with `CBS(..., bypass=True)`.
+Mean-over-instances expansions made it look like a 20-25% improvement, but the
+per-instance medians and geomeans show no robust win (per-instance ratios are
+roughly flat or slightly worse). It is a textbook outlier-of-means artifact ---
+the same trap our report warned about with the focal eval. The code is left in
+the repo for reproducibility but is not recommended as an unconditional
+improvement.
 
 ## Layout
 
