@@ -32,6 +32,7 @@ geometric-mean ratio metric used in the report.
 | Hybrid (cardinal + linear tiebreak)| cardinal classification + linear within bucket     | identical to linear                  |
 | Linear, cleaner labels (3x rollout budget) | 150 instances at 1200-node subtree budget  | small improvement on d0.1/14; within noise elsewhere |
 | Stronger oracle (linear-rollout) | oracle uses learned linear as rollout policy         | small improvement only in dense regimes, much slower |
+| ICBS-style Bypass (`bypass=True`) | replace one agent's path in place when a same-cost alternative reduces conflicts | mean-of-means looks like 20-25% win, per-instance medians/geomeans show no robust gain |
 
 ## What the experiments show
 
@@ -65,10 +66,11 @@ Each of these would require more time than was available:
   (each trajectory is a full CBS solve); needs careful reward shaping.
 - **A 2-step lookahead oracle**: at each node, evaluate each candidate by
   branching twice and rolling out, not just once. Strictly stronger oracle but
-  quadratically more expensive to collect.
-- **Classical CBS speedups composed with the learned selector**: Bypass moves,
-  CBSH-style admissible high-level heuristics, disjoint splitting. These are
-  orthogonal to learning and would reliably reduce expansions.
+  quadratically more expensive to collect, so the training set would either
+  shrink or take orders of magnitude longer to gather.
+- **Classical CBS speedups beyond Bypass**: CBSH-style admissible high-level
+  heuristics, disjoint splitting. These add nontrivial implementation work but
+  are orthogonal to learning.
 
 ## Bypass: a textbook outlier-of-means cautionary tale
 
