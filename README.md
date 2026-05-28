@@ -29,6 +29,12 @@ the experiments reported in `overleaf/main.tex`.
   - A GRU over the search history of resolved conflicts (no gain over the
     memoryless linear ranker).
 
+Follow-up experiments (extended features, GNN over the conflict graph,
+ensembles, hybrid selectors, cleaner-label data, policy-iteration oracle) are
+documented in [experiments_notes.md](experiments_notes.md). The summary: the
+linear ranker is at the achievable ceiling in this setup; more capacity hurts
+and the bottleneck is oracle-label noise rather than the model.
+
 ## Layout
 
 ```

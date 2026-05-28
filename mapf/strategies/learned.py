@@ -8,7 +8,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from .features import extract_node_features, N_FEATURES
+from .features import (
+    extract_node_features, extract_node_features_ext,
+    N_FEATURES, N_EXT_FEATURES,
+)
+
+
+def _pick_feature_fn(F):
+    return extract_node_features_ext if F == N_EXT_FEATURES else extract_node_features
 
 
 class Standardizer:
@@ -28,6 +35,7 @@ class LearnedLinearSelector:
         self.w = w
         self.b = b
         self.std = std
+        self.feature_fn = _pick_feature_fn(len(w))
 
     @classmethod
     def load(cls, path: str) -> "LearnedLinearSelector":
@@ -35,7 +43,7 @@ class LearnedLinearSelector:
         return cls(d["w"], float(d["b"]), Standardizer(d["mean"], d["std"]))
 
     def scores(self, node, solver):
-        X, conflicts = extract_node_features(node, solver)
+        X, conflicts = self.feature_fn(node, solver)
         return self.std(X) @ self.w + self.b, conflicts
 
     def select(self, node, solver):
@@ -50,6 +58,7 @@ class LearnedMLPSelector:
     def __init__(self, W1, b1, W2, b2, std: Standardizer):
         self.W1, self.b1, self.W2, self.b2 = W1, b1, W2, b2
         self.std = std
+        self.feature_fn = _pick_feature_fn(W1.shape[0])
 
     @classmethod
     def load(cls, path: str) -> "LearnedMLPSelector":
@@ -58,7 +67,7 @@ class LearnedMLPSelector:
                    Standardizer(d["mean"], d["std"]))
 
     def scores(self, node, solver):
-        X, conflicts = extract_node_features(node, solver)
+        X, conflicts = self.feature_fn(node, solver)
         h = np.tanh(self.std(X) @ self.W1 + self.b1)
         return (h @ self.W2 + self.b2).ravel(), conflicts
 

@@ -32,13 +32,33 @@ def main():
     ap.add_argument("--subtree-time-limit", type=float, default=1.0)
     ap.add_argument("--out-npz", default="data/trajectories/strong_train.npz")
     ap.add_argument("--out-pkl", default="data/trajectories/strong_seq.pkl")
+    ap.add_argument("--out-gnn", default=None,
+                    help="If set, also save (X, agent_pairs, idx) tuples for GNN.")
+    ap.add_argument("--features", choices=["v1", "ext"], default="v1")
+    ap.add_argument("--rollout-linear", default=None,
+                    help="Path to a linear .npz model to use as the oracle's "
+                         "rollout policy instead of cardinal (policy iteration).")
     args = ap.parse_args()
+
+    if args.features == "ext":
+        from mapf.strategies.features import extract_node_features_ext as feat_fn
+    else:
+        feat_fn = None  # default v1 in StrongOracleSelector
+
+    if args.rollout_linear:
+        from mapf.strategies.learned import LearnedLinearSelector
+        rollout_model = LearnedLinearSelector.load(args.rollout_linear)
+        print(f"Using {args.rollout_linear} as oracle rollout policy "
+              f"(dim {rollout_model.w.shape[0]})")
+    else:
+        rollout_model = None
 
     agent_choices = [int(x) for x in args.agents.split(",")]
     dens_choices = [float(x) for x in args.density.split(",")]
 
     feats, groups, labels = [], [], []
     seq_records = []
+    gnn_records = []
     t0 = time.perf_counter()
     for k in range(args.n_instances):
         seed = args.start_seed + k
@@ -48,10 +68,13 @@ def main():
         if inst is None:
             continue
         log, seq_log = [], []
+        gnn_log = [] if args.out_gnn else None
         sel = StrongOracleSelector(
-            log=log, seq_log=seq_log,
+            log=log, seq_log=seq_log, gnn_log=gnn_log,
             subtree_node_limit=args.subtree_node_limit,
-            subtree_time_limit=args.subtree_time_limit)
+            subtree_time_limit=args.subtree_time_limit,
+            feature_fn=feat_fn,
+            rollout_selector=rollout_model)
         CBS(inst, sel, time_limit=args.time_limit,
             node_limit=args.node_limit, track_history=True).solve()
         for X, idx in log:
@@ -62,6 +85,10 @@ def main():
         for hist, X, idx in seq_log:
             if X.shape[0] >= 2:
                 seq_records.append((hist, X, idx))
+        if gnn_log is not None:
+            for X, pairs, idx in gnn_log:
+                if X.shape[0] >= 2:
+                    gnn_records.append((X, pairs, idx))
         if (k + 1) % 20 == 0:
             print(f"  {k+1}/{args.n_instances} | {len(groups)} nodes | "
                   f"{time.perf_counter()-t0:.0f}s", flush=True)
@@ -77,6 +104,10 @@ def main():
         pickle.dump(seq_records, f)
     print(f"\nSaved {len(groups)} ranking groups -> {args.out_npz}")
     print(f"Saved {len(seq_records)} sequence records -> {args.out_pkl}")
+    if args.out_gnn:
+        with open(args.out_gnn, "wb") as f:
+            pickle.dump(gnn_records, f)
+        print(f"Saved {len(gnn_records)} GNN records -> {args.out_gnn}")
 
 
 if __name__ == "__main__":

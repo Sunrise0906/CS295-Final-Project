@@ -132,8 +132,9 @@ def main():
     args = ap.parse_args()
 
     data, feats = load_groups(args.data)
+    F = feats.shape[1]
     print(f"Loaded {len(data)} ranking groups, {feats.shape[0]} conflicts, "
-          f"{N_FEATURES} features")
+          f"{F} features")
     mean, std = standardize_fit(feats)
     data = [((X - mean) / std, y) for X, y in data]
 
@@ -144,15 +145,20 @@ def main():
     out = args.out or f"models/selector_{args.model}.npz"
     Path(out).parent.mkdir(parents=True, exist_ok=True)
 
+    # Pick the feature-name list matching the data dimension.
+    from mapf.strategies.features import EXT_FEATURE_NAMES
+    names = EXT_FEATURE_NAMES if F == len(EXT_FEATURE_NAMES) else FEATURE_NAMES
+
     if args.model == "linear":
-        w, b = train_linear(data, N_FEATURES, args.epochs, args.lr, args.l2)
+        w, b = train_linear(data, F, args.epochs, args.lr, args.l2)
         np.savez(out, w=w, b=b, mean=mean, std=std)
         order = np.argsort(-np.abs(w))
         print("\nTop weighted features:")
         for i in order[:8]:
-            print(f"    {FEATURE_NAMES[i]:>16}: {w[i]:+.3f}")
+            nm = names[i] if i < len(names) else f"feat{i}"
+            print(f"    {nm:>22}: {w[i]:+.3f}")
     else:
-        W1, b1v, W2, b2v = train_mlp(data, N_FEATURES, args.hidden,
+        W1, b1v, W2, b2v = train_mlp(data, F, args.hidden,
                                      args.epochs, args.lr, args.l2)
         np.savez(out, W1=W1, b1=b1v, W2=W2, b2=b2v, mean=mean, std=std)
     print(f"\nSaved model -> {out}")

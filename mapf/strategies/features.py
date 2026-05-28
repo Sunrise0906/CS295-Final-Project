@@ -84,3 +84,106 @@ def extract_node_features(node, solver) -> tuple[np.ndarray, list[Conflict]]:
             len(conflicts) / 50.0,
         ])
     return np.asarray(rows, dtype=np.float64), conflicts
+
+
+# --- Extended features (v2): adds MDD-structure and conflict-graph features --
+
+EXT_FEATURE_NAMES = FEATURE_NAMES + [
+    "mdd_overlap_t",
+    "mdd_overlap_global_norm",
+    "cg_deg_i",
+    "cg_deg_j",
+    "cg_deg_max",
+    "mdd_width_avg_i",
+    "mdd_width_avg_j",
+    "path_overlap_norm",
+    "n_singleton_levels_norm",
+]
+N_EXT_FEATURES = len(EXT_FEATURE_NAMES)
+
+
+def _mdd_level(m, t):
+    """Cells that agent could occupy at time ``t`` according to MDD ``m``.
+    For ``t`` past arrival the agent is pinned to the goal."""
+    if m is None:
+        return None
+    if t < 0:
+        return set()
+    if t >= m.cost:
+        return {m.goal}
+    if t >= len(m.levels):
+        return {m.goal}
+    return m.levels[t]
+
+
+def _mdd_overlap_at(mi, mj, t):
+    si, sj = _mdd_level(mi, t), _mdd_level(mj, t)
+    if si is None or sj is None:
+        return 0
+    return len(si & sj)
+
+
+def _mdd_overlap_global(mi, mj):
+    if mi is None or mj is None:
+        return 0
+    total = 0
+    for t in range(max(mi.cost, mj.cost) + 1):
+        total += _mdd_overlap_at(mi, mj, t)
+    return total
+
+
+def _mdd_width_avg(m):
+    if m is None or not m.levels:
+        return 1.0
+    return sum(len(lvl) for lvl in m.levels) / len(m.levels)
+
+
+def _n_singleton_levels(m):
+    if m is None or not m.levels:
+        return 0
+    return sum(1 for lvl in m.levels if len(lvl) == 1)
+
+
+def extract_node_features_ext(node, solver):
+    """Extended features: base 24-dim vector plus MDD structure features
+    (cross-agent MDD overlap, average widths, singleton level counts, path
+    overlap) and conflict-graph degree features."""
+    X, conflicts = extract_node_features(node, solver)
+    n_agents = solver.instance.n_agents
+
+    # Conflict-graph: for each agent, the set of other agents it conflicts with.
+    neighbors: dict = {}
+    for c in conflicts:
+        neighbors.setdefault(c.a1, set()).add(c.a2)
+        neighbors.setdefault(c.a2, set()).add(c.a1)
+
+    extras = []
+    makespan = max((len(p) for p in node.paths), default=1)
+    ms = float(max(1, makespan))
+    for c in conflicts:
+        mi = solver.mdd_for(node, c.a1)
+        mj = solver.mdd_for(node, c.a2)
+        t = c.time
+        ov_t = _mdd_overlap_at(mi, mj, t)
+        ov_g = _mdd_overlap_global(mi, mj)
+        cg_i = len(neighbors.get(c.a1, set()))
+        cg_j = len(neighbors.get(c.a2, set()))
+        wa_i = _mdd_width_avg(mi)
+        wa_j = _mdd_width_avg(mj)
+        # Path overlap: cells visited by both agents' current paths (ignoring time).
+        pi = set(node.paths[c.a1])
+        pj = set(node.paths[c.a2])
+        po = len(pi & pj)
+        ns = _n_singleton_levels(mi) + _n_singleton_levels(mj)
+        extras.append([
+            ov_t,
+            ov_g / ms,
+            cg_i / max(1.0, n_agents - 1),
+            cg_j / max(1.0, n_agents - 1),
+            max(cg_i, cg_j) / max(1.0, n_agents - 1),
+            wa_i,
+            wa_j,
+            po / ms,
+            ns / max(1.0, 2 * ms),
+        ])
+    return np.hstack([X, np.asarray(extras, dtype=np.float64)]), conflicts
