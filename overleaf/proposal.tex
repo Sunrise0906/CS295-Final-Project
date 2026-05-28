@@ -1,0 +1,142 @@
+\documentclass{article}
+
+
+% if you need to pass options to natbib, use, e.g.:
+%     \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading neurips_2025
+
+
+% ready for submission
+\usepackage[final]{nips}
+
+
+% to compile a preprint version, e.g., for submission to arXiv, add add the
+% [preprint] option:
+%     \usepackage[preprint]{neurips_2025}
+
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+%     \usepackage[final]{neurips_2025}
+
+
+% to avoid loading the natbib package, add option nonatbib:
+%    \usepackage[nonatbib]{neurips_2025}
+
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+\usepackage{todonotes}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{epstopdf}
+\usepackage{xparse}
+\usepackage{tabulary}
+\usepackage{pifont}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{wrapfig}
+
+\usepackage{svg}
+
+\usepackage{amsthm}
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{example}[definition]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}[section]
+
+
+\title{Multi-agent path finding - Project 3 proposal}
+
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to break the
+% lines. Using \AND forces a line break at that point. So, if LaTeX puts 3 of 4
+% authors names on the first line, and the last on the second line, try using
+% \AND instead of \And before the third author name.
+
+
+\author{%
+  Natalie Pham \\
+  \And
+  Chaoyang Wang
+}
+  % \thanks{Use footnote for providing further information
+  %   about author (webpage, alternative address)---\emph{not} for acknowledging
+  %   funding agencies.} \\
+  % Department of Computer Science\\
+  % Cranberry-Lemon University\\
+  % Pittsburgh, PA 15213 \\
+  % \texttt{hippo@cs.cranberry-lemon.edu} \\
+  % examples of more authors
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \AND
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+
+
+\begin{document}
+\maketitle
+% \begin{abstract}
+% \end{abstract}
+\vspace{-25pt}
+\section{Motivation}
+\vspace{-10pt}
+Multi-Agent Path Finding (MAPF) is a fundamental problem in robotics and multi-robot systems, where agents must reach their destinations while avoiding collisions. Classical planners such as Conflict-Based Search (CBS) provide completeness and optimality guarantees, but their computational cost grows rapidly with increasing agent interactions \cite{sharon2015conflict}. We hypothesize that CBS conflict sequences contain temporal patterns that can be learned to guide conflict prioritization and branching decisions, improving scalability while preserving symbolic planning guarantees.
+\vspace{-10pt}
+\section{Related works}
+\vspace{-10pt}
+\textbf{Classical MAPF. }Classical approaches to MAPF, such as CBS, have achieved strong performance by decomposing the planning problem into high-level conflict resolution and low-level single-agent planning. CBS guarantees completeness and optimality by explicitly introducing constraints to resolve agent conflicts, but its computational complexity grows rapidly in dense environments with many interacting agents \cite{sharon2015conflict}. Subsequent improvements including Enhanced CBS \cite{barer2014suboptimal}, Improved CBS \cite{boyarski2015icbs}, and CBSH \cite{li2019disjoint} introduced bounded-suboptimal search, improved conflict prioritization, and heuristic guidance to reduce the explosion of the high-level search tree. However, these approaches still rely primarily on handcrafted heuristics and local conflict statistics, limiting their ability to capture long-horizon congestion dynamics and complex interaction patterns among agents.
+
+\textbf{Learning-based MAPF. }Recent learning-based MAPF methods attempt to improve scalability through neural policies and decentralized coordination. PRIMAL combines reinforcement learning and imitation learning to train decentralized policies using local observations, enabling execution at large scales without centralized planning \cite{sartoretti2019primal}. More recent transformer-based approaches such as SRMT introduce shared memory mechanisms to improve long-term coordination in lifelong MAPF settings \cite{wang2025srmt}. However, these methods sacrifice the correctness guarantees of symbolic planners and often suffer from deadlocks, oscillatory behavior, and poor generalization under severe bottlenecks. Moreover, transformer architectures incur quadratic attention costs and struggle with long-horizon temporal reasoning in large multi-agent systems.
+
+\textbf{Long-range dependencies models. } As an alternatives to transformers, state-space sequence models such as S4 and MAMBA have recently emerged as efficient alternatives to transformers for long-sequence modeling. These models achieve linear-time complexity while maintaining strong long-range memory capabilities, making them promising for sequential decision-making and reinforcement learning tasks \cite{gu2021efficiently, gu2023mamba}. \cite{bhattacharya2025multiagent} demonstrates that structured state-space models can improve temporal coordination and scalability in offline multi-agent reinforcement learning. Despite these advances, little work has explored using state-space models to guide symbolic combinatorial search in MAPF. In particular, no existing work explicitly models the temporal evolution of CBS conflict sequences using long-memory sequence models. This motivates our proposed direction: integrating Mamba/S4 architectures into CBS to learn conflict prioritization and branching heuristics while preserving the completeness and correctness guarantees of symbolic planning.
+\vspace{-10pt}
+\section{Possible failures of the proposed idea}
+\vspace{-10pt}
+Although integrating Mamba/S4 with CBS is promising, several challenges may limit its effectiveness. CBS conflict sequences may not exhibits predictable temporal structure for sequence modeling to improve branching decisions, and repeated neural inference may offset search efficiency gains, especially in dense MAPF instances. In such cases, we are also interested in analyzing the negative results, which could provide valuable insight into the limitations of sequence models for symbolic planning and whether long-range temporal modeling can effectively guide combinatorial MAPF search. Since the proposed approach depends on learning from CBS search trajectories, collecting sufficiently diverse conflict sequences may require solving many difficult MAPF instances offline.
+
+\bibliographystyle{plain}
+\bibliography{ref}
+
+
+
+
+\end{document}

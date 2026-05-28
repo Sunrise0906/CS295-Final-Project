@@ -1,0 +1,7 @@
+# Core library + experiments (runs on Python 3.14, numpy-only core).
+numpy>=1.26
+matplotlib>=3.8
+
+# Stretch goal only (sequence-model selector). Install in a separate env with a
+# Python version that has CUDA wheels (e.g. conda env `mlenv`, Python 3.10):
+#   torch>=2.2

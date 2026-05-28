@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Training trajectories are regeneratable via scripts/collect_*.py
+data/
+
+# Overleaf build artifacts (keep main.pdf in the repo)
+overleaf/*.aux
+overleaf/*.log
+overleaf/*.out
+overleaf/*.bbl
+overleaf/*.blg
+overleaf/*.synctex.gz
+overleaf/*.fls
+overleaf/*.fdb_latexmk
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
