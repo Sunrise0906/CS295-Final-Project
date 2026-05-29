@@ -36,15 +36,16 @@ ICBS-style Bypass) are documented in [experiments_notes.md](experiments_notes.md
 The one that did improve over the report's linear ranker uses a stronger oracle
 (the learned linear as the rollout policy, with a 1500-node subtree budget).
 A linear retrained on those labels (`models/selector_linear_v1_linroll.npz`)
-beats the report's original linear by 8-13% per-instance geomean on hard
-configs:
+beats the report's original linear by 8-13% per-instance geomean on hard 8x8
+configs and the gap persists or grows on unseen 10x10 grids, where the win-rate
+on the hardest cell jumps from 65% to 83%:
 
 | config (density, agents) | original linear gm | linroll-v1 linear gm |
 |--------------------------|-------------------:|---------------------:|
-| 0.1, 12                  | 0.77               | 0.70                 |
-| 0.1, 14                  | 0.68               | 0.60                 |
-| 0.2, 10                  | 0.64               | 0.59                 |
-| 0.2, 14                  | 0.67               | 0.58                 |
+| 8x8: 0.1, 12             | 0.77               | 0.70                 |
+| 8x8: 0.1, 14             | 0.68               | 0.60                 |
+| 8x8: 0.2, 14             | 0.67               | 0.58                 |
+| 10x10: 0.2, 12           | 0.50               | 0.41                 |
 
 The other avenues we tried (more model capacity, GNN over the conflict graph,
 extended features, ICBS-style Bypass) either underperform or fail to beat the

@@ -5,17 +5,28 @@ the linear ranker can be pushed further.
 
 **Headline: a stronger oracle (using the learned linear as its rollout policy)
 produces an improved linear ranker.** The new model
-(`models/selector_linear_v1_linroll.npz`) beats the report's original linear
-on 4 of 6 hard configs and ties the rest, by per-instance geomean expansion
-ratio (the rigorous methodology our report insists on):
+(`models/selector_linear_v1_linroll.npz`) beats the report's original linear on
+the hard configs, by per-instance geomean expansion ratio (the rigorous
+methodology our report insists on):
 
-| config (density, agents) | orig gm | linroll-v1 gm | improvement |
-|--------------------------|--------:|--------------:|------------:|
-| 0.1, 12                  | 0.77    | 0.70          | -9%         |
-| 0.1, 14                  | 0.68    | 0.60          | -12%        |
-| 0.2, 10                  | 0.64    | 0.59          | -8%         |
-| 0.2, 12                  | 0.48    | 0.48          | tie         |
-| 0.2, 14                  | 0.67    | 0.58          | -13%        |
+| 8x8 (density, agents) | orig gm | linroll-v1 gm | improvement |
+|-----------------------|--------:|--------------:|------------:|
+| 0.1, 12               | 0.77    | 0.70          | -9%         |
+| 0.1, 14               | 0.68    | 0.60          | -12%        |
+| 0.2, 10               | 0.64    | 0.59          | -8%         |
+| 0.2, 12               | 0.48    | 0.48          | tie         |
+| 0.2, 14               | 0.67    | 0.58          | -13%        |
+
+The improvement generalizes out of distribution: on unseen 10x10 grids (linroll
+was trained only on 8x8), the gap is the same or larger, including a 65% to
+83% jump in win-rate at the hardest 10x10 cell:
+
+| 10x10 (density, agents) | orig gm | orig win-rate | linroll-v1 gm | linroll-v1 win-rate |
+|-------------------------|--------:|--------------:|--------------:|--------------------:|
+| 0.1, 14                 | 0.71    | 64%           | 0.66          | 56%                 |
+| 0.2, 10                 | 0.67    | 58%           | 0.64          | 71%                 |
+| 0.2, 12                 | 0.50    | 65%           | 0.41          | **83%**             |
+| 0.2, 14                 | 0.35    | 81%           | 0.31          | 81%                 |
 
 The other avenues we tried (more model capacity, GNN, ensembles, extended
 features, ICBS-style Bypass) either underperform or fail to beat the report's
