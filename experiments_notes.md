@@ -3,17 +3,24 @@
 Additional experiments run after the report was submitted, exploring whether
 the linear ranker can be pushed further.
 
-**Headline: no avenue we explored robustly beats the report's linear ranker.**
-Each direction either underperforms (more model capacity, GNN, ensembles,
-extended features) or improves only marginally and inconsistently (cleaner-
-label oracles). In particular, ICBS-style Bypass --- which looked like a
-20-25% win on the standard ratio-of-means table --- shows no robust gain when
-analyzed by per-instance medians/geomeans (the methodology our own report
-insists on). It is a textbook outlier-of-means artifact: Bypass produces a few
-very large savings on a small number of hard instances while marginally hurting
-on the typical instance, so mean-of-means looks like a win and the per-instance
-distribution does not. Bypass is left in the code (`CBS(..., bypass=True)`) for
-reproducibility but is not recommended as an unconditional improvement.
+**Headline: a stronger oracle (using the learned linear as its rollout policy)
+produces an improved linear ranker.** The new model
+(`models/selector_linear_v1_linroll.npz`) beats the report's original linear
+on 4 of 6 hard configs and ties the rest, by per-instance geomean expansion
+ratio (the rigorous methodology our report insists on):
+
+| config (density, agents) | orig gm | linroll-v1 gm | improvement |
+|--------------------------|--------:|--------------:|------------:|
+| 0.1, 12                  | 0.77    | 0.70          | -9%         |
+| 0.1, 14                  | 0.68    | 0.60          | -12%        |
+| 0.2, 10                  | 0.64    | 0.59          | -8%         |
+| 0.2, 12                  | 0.48    | 0.48          | tie         |
+| 0.2, 14                  | 0.67    | 0.58          | -13%        |
+
+The other avenues we tried (more model capacity, GNN, ensembles, extended
+features, ICBS-style Bypass) either underperform or fail to beat the report's
+linear in per-instance analysis. The Bypass attempt is documented below as a
+textbook outlier-of-means cautionary tale.
 
 ## Variants tried
 
@@ -31,7 +38,7 @@ geometric-mean ratio metric used in the report.
 | Ensemble (linear + GNN scores)   | averaged standardized scores                         | slightly worse than linear alone     |
 | Hybrid (cardinal + linear tiebreak)| cardinal classification + linear within bucket     | identical to linear                  |
 | Linear, cleaner labels (3x rollout budget) | 150 instances at 1200-node subtree budget  | small improvement on d0.1/14; within noise elsewhere |
-| Stronger oracle (linear-rollout) | oracle uses learned linear as rollout policy         | small improvement only in dense regimes, much slower |
+| Stronger oracle (linear-rollout + 1500-node budget) | oracle uses learned linear as rollout policy with larger budget; linear retrained on the new labels | **wins**: 8-13% improvement on hard configs |
 | ICBS-style Bypass (`bypass=True`) | replace one agent's path in place when a same-cost alternative reduces conflicts | mean-of-means looks like 20-25% win, per-instance medians/geomeans show no robust gain |
 
 ## What the experiments show
@@ -47,12 +54,15 @@ geometric-mean ratio metric used in the report.
 3. **The conflict graph carries real structure** (mean edge density ~30% at the
    root of dense instances), but capturing it requires capacity (GNN) that
    overfits the modest training data we can collect.
-4. **The bottleneck is oracle noise.** The subtree oracle rolls out with cardinal
-   under a fixed node budget; when subtree solves saturate, the oracle returns
-   a penalty value and mis-ranks conflicts. A 3x larger budget gives slightly
-   cleaner labels (`data/trajectories/strong_train_clean.npz`) and a small win
-   on one config (d=0.1, 14 agents: geometric-mean ratio 0.60 vs 0.68), but the
-   improvement is within noise on others.
+4. **The bottleneck is oracle quality.** The subtree oracle rolls out with
+   cardinal under a fixed node budget; when subtree solves saturate, the oracle
+   returns a penalty value and mis-ranks conflicts. Combining a stronger
+   rollout policy (the learned linear instead of cardinal) with a larger
+   subtree budget (1500 nodes instead of 400) produces noticeably better
+   training labels: a linear retrained on those labels beats the report's
+   linear by 8-13% on hard configs. Either change alone is much less effective
+   (cleaner labels alone gave a small win on a single config; linear-rollout
+   alone with a small budget gave mixed results in a pilot).
 5. **Hybrid (cardinal + linear tie-break) is identical to linear alone.** This
    confirms the linear has already learned the "prefer cardinal" rule and is
    doing its real work in the tie-breaking step.

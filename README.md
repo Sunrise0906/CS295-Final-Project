@@ -30,18 +30,25 @@ the experiments reported in `overleaf/main.tex`.
     memoryless linear ranker).
 
 Follow-up experiments (extended features, GNN over the conflict graph,
-ensembles, hybrid selectors, cleaner-label data, policy-iteration oracle) are
-documented in [experiments_notes.md](experiments_notes.md). The linear ranker
-is at the achievable ceiling for the imitation-learning route in this setup;
-more model capacity hurts because the bottleneck is oracle-label noise.
+ensembles, hybrid selectors, cleaner-label data, policy-iteration oracle,
+ICBS-style Bypass) are documented in [experiments_notes.md](experiments_notes.md).
 
-We also implemented ICBS-style Bypass and enabled it with `CBS(..., bypass=True)`.
-Mean-over-instances expansions made it look like a 20-25% improvement, but the
-per-instance medians and geomeans show no robust win (per-instance ratios are
-roughly flat or slightly worse). It is a textbook outlier-of-means artifact ---
-the same trap our report warned about with the focal eval. The code is left in
-the repo for reproducibility but is not recommended as an unconditional
-improvement.
+The one that did improve over the report's linear ranker uses a stronger oracle
+(the learned linear as the rollout policy, with a 1500-node subtree budget).
+A linear retrained on those labels (`models/selector_linear_v1_linroll.npz`)
+beats the report's original linear by 8-13% per-instance geomean on hard
+configs:
+
+| config (density, agents) | original linear gm | linroll-v1 linear gm |
+|--------------------------|-------------------:|---------------------:|
+| 0.1, 12                  | 0.77               | 0.70                 |
+| 0.1, 14                  | 0.68               | 0.60                 |
+| 0.2, 10                  | 0.64               | 0.59                 |
+| 0.2, 14                  | 0.67               | 0.58                 |
+
+The other avenues we tried (more model capacity, GNN over the conflict graph,
+extended features, ICBS-style Bypass) either underperform or fail to beat the
+report's linear in per-instance analysis.
 
 ## Layout
 
