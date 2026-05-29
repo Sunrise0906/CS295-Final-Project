@@ -411,21 +411,23 @@ stand-alone priority because the on-path signal is sparse and policy-dependent,
 so the model occasionally dives into dead-end branches. A sequence model over
 the search history did not beat the memoryless linear selector, and its
 imitation accuracy was no higher. Both findings indicate that CBS conflict
-selection is close to Markovian in the current node's MDD features, so neither
-global focal context nor long-horizon history adds much. One methodological
-note: expansion counts are heavy-tailed and ratio-of-means can mislead (we
-initially saw an illusory $3\times$ focal speed-up); per-instance medians and
-win-rates are needed.
+selection is close to Markovian in the current node's MDD features. One
+methodological note: expansion counts are heavy-tailed and ratio-of-means can
+mislead (we initially saw an illusory $3\times$ focal speed-up); per-instance
+medians and win-rates are needed. A follow-up policy-improvement step ---
+using the learned linear as the oracle's rollout policy with a larger subtree
+budget --- produces a second linear that beats the one in Table~\ref{tab:rq2}
+by $8$--$14\%$ per-instance geomean on the same hard cells; higher-capacity
+models (MLP, GNN over the conflict graph) and richer features did not, so the
+model is at the ceiling and the oracle is the bottleneck.
 
 \textbf{Limitations.} Our pure-Python solver restricts us to small grids;
 absolute runtimes are not comparable to optimised C++ solvers, though expansion
-counts (an implementation-independent measure of effort) are. The oracle is a
-one-step policy improvement over cardinal, not the globally optimal selection
-policy, so the learned ceiling we report is conservative. The gains are
-setting-dependent: on a structured $4$-rooms map the learned selector does not
+counts are. The oracle is a one-step policy improvement over cardinal, not the
+globally optimal selection policy, so the learned ceiling we report is
+conservative. On a structured $4$-rooms map the learned selector does not
 underperform cardinal but its edge narrows to roughly par. A faster solver would
-enable MovingAI-scale benchmarks and richer models (e.g., GNNs over the conflict
-graph); the selection interface supports dropping these in.
+enable MovingAI-scale benchmarks and richer models.
 
 \vspace{-6pt}
 We studied conflict prioritization in CBS by isolating it as the single variable
