@@ -6,16 +6,17 @@ the linear ranker can be pushed further.
 **Headline: a stronger oracle (using the learned linear as its rollout policy)
 produces an improved linear ranker.** The new model
 (`models/selector_linear_v1_linroll.npz`) beats the report's original linear on
-the hard configs, by per-instance geomean expansion ratio (the rigorous
-methodology our report insists on):
+every hard config we tested, by per-instance geomean expansion ratio (the
+rigorous methodology our report insists on), confirmed on an 80-seed sweep
+(`results/optimal_linroll.csv` vs `results/optimal_learned.csv`):
 
 | 8x8 (density, agents) | orig gm | linroll-v1 gm | improvement |
 |-----------------------|--------:|--------------:|------------:|
-| 0.1, 12               | 0.77    | 0.70          | -9%         |
-| 0.1, 14               | 0.68    | 0.60          | -12%        |
-| 0.2, 10               | 0.64    | 0.59          | -8%         |
-| 0.2, 12               | 0.48    | 0.48          | tie         |
-| 0.2, 14               | 0.67    | 0.58          | -13%        |
+| 0.1, 12               | 0.70    | 0.64          | -8.3%       |
+| 0.1, 14               | 0.60    | 0.53          | -12.7%      |
+| 0.2, 10               | 0.68    | 0.62          | -8.4%       |
+| 0.2, 12               | 0.48    | 0.46          | -4.5%       |
+| 0.2, 14               | 0.61    | 0.52          | -14.0%      |
 
 The improvement generalizes out of distribution: on unseen 10x10 grids (linroll
 was trained only on 8x8), the gap is the same or larger, including a 65% to
