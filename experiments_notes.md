@@ -72,10 +72,18 @@ geometric-mean ratio metric used in the report.
    rollout policy (the learned linear instead of cardinal) with a larger
    subtree budget (1500 nodes instead of 400) produces noticeably better
    training labels: a linear retrained on those labels beats the report's
-   linear by 8-13% on hard configs. Either change alone is much less effective
-   (cleaner labels alone gave a small win on a single config; linear-rollout
-   alone with a small budget gave mixed results in a pilot).
-5. **Hybrid (cardinal + linear tie-break) is identical to linear alone.** This
+   linear by 8-14% on hard configs (80-seed sweep). Either change alone is
+   much less effective (cleaner labels alone gave a small win on a single
+   config; linear-rollout alone with a small budget gave mixed results in a
+   pilot).
+5. **Policy iteration converges in one step.** Iterating once more --- using
+   the new linear (`linroll-v1`) as the rollout policy for another data
+   collection, then retraining --- gives a model whose performance is
+   indistinguishable from `linroll-v1` (better on one config, worse on three,
+   the rest within noise). The first step of policy improvement is the win;
+   the dataset size we can practically collect cannot support further
+   refinement.
+6. **Hybrid (cardinal + linear tie-break) is identical to linear alone.** This
    confirms the linear has already learned the "prefer cardinal" rule and is
    doing its real work in the tie-breaking step.
 
